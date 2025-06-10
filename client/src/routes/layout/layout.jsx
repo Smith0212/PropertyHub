@@ -19,7 +19,7 @@ function Layout() {
 
 function RequireAuth() {
   const { currentUser } = useContext(AuthContext);
-
+  console.log("Current User:", currentUser);
   if (!currentUser) return <Navigate to="/login" />;
   else {
     return (
