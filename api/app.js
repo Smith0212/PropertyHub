@@ -16,8 +16,12 @@ const server = createServer(app)
 
 // CORS configuration
 const corsOptions = {
-  origin: true,
+  origin: [
+    "https://property-hub-ebon.vercel.app",
+    "http://localhost:5173"
+  ],
   credentials: true,
+  optionsSuccessStatus: 200,
 };
 // Socket.IO setup with CORS
 const io = new Server(server, {
