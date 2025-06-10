@@ -16,11 +16,9 @@ const server = createServer(app)
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: true,
   credentials: true,
-  optionsSuccessStatus: 200,
-}
-
+};
 // Socket.IO setup with CORS
 const io = new Server(server, {
   cors: {
