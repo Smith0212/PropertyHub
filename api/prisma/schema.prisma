@@ -21,10 +21,16 @@ model Post {
   type       Type
   property   Property
   createdAt  DateTime    @default(now())
-  user       User        @relation(fields: [userId], references: [id])
+  updatedAt  DateTime    @updatedAt
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String      @db.ObjectId
   postDetail PostDetail?
   savedPosts SavedPost[]
+
+  @@index([city])
+  @@index([type])
+  @@index([property])
+  @@index([price])
 }
 
 enum Type {
@@ -49,14 +55,14 @@ model PostDetail {
   school     Int?
   bus        Int?
   restaurant Int?
-  post       Post    @relation(fields: [postId], references: [id])
+  post       Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId     String  @unique @db.ObjectId
 }
 
 model SavedPost {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id])
-  post      Post     @relation(fields: [postId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   userId    String   @db.ObjectId
   postId    String   @db.ObjectId
   createdAt DateTime @default(now())
@@ -65,33 +71,173 @@ model SavedPost {
 }
 
 model User {
-  id         String      @id @default(auto()) @map("_id") @db.ObjectId
-  email      String      @unique
-  username   String      @unique
-  password   String
-  avatar     String?
-  createdAt  DateTime    @default(now())
-  posts      Post[]
-  savedPosts SavedPost[]
-  chats      Chat[]      @relation(fields: [chatIDs], references: [id])
-  chatIDs    String[]    @db.ObjectId
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  email        String      @unique
+  username     String      @unique
+  password     String
+  avatar       String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  posts        Post[]
+  savedPosts   SavedPost[]
+  chats        Chat[]      @relation(fields: [chatIDs], references: [id])
+  chatIDs      String[]    @db.ObjectId
+  sentMessages Message[]   @relation("MessageSender")
+  isOnline     Boolean     @default(false)
+  lastSeen     DateTime    @default(now())
 }
 
 model Chat {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  users     User[]    @relation(fields: [userIDs], references: [id])
-  userIDs   String[]  @db.ObjectId
-  createdAt DateTime  @default(now())
-  seenBy    String[]  @db.ObjectId
-  messages  Message[]
-  lastMessage String?
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  users          User[]    @relation(fields: [userIDs], references: [id])
+  userIDs        String[]  @db.ObjectId
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  seenBy         String[]  @db.ObjectId
+  messages       Message[]
+  lastMessage    String?
+  lastMessageAt  DateTime?
+
+  @@index([userIDs])
 }
 
 model Message {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   text      String
-  userId    String
-  chat      Chat     @relation(fields: [chatId], references: [id])
+  sender    User     @relation("MessageSender", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
   chatId    String   @db.ObjectId
   createdAt DateTime @default(now())
+  isRead    Boolean  @default(false)
+
+  @@index([chatId])
+  @@index([userId])
 }
+
+
+
+
+
+
+
+
+
+
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "mongodb"
+//   url      = env("DATABASE_URL") // run: npx prisma generate to load environment variables
+// }
+
+// model Post {
+//   id         String      @id @default(auto()) @map("_id") @db.ObjectId
+//   title      String
+//   price      Int
+//   images     String[]
+//   address    String
+//   city       String
+//   bedroom    Int
+//   bathroom   Int
+//   latitude   String
+//   longitude  String
+//   type       Type
+//   property   Property
+//   createdAt  DateTime    @default(now())
+//   updatedAt  DateTime    @updatedAt
+//   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   userId     String      @db.ObjectId
+//   postDetail PostDetail?
+//   savedPosts SavedPost[]
+
+//   @@index([city])
+//   @@index([type])
+//   @@index([property])
+//   @@index([price])
+// }
+
+// enum Type {
+//   buy
+//   rent
+// }
+
+// enum Property {
+//   apartment
+//   house
+//   condo
+//   land
+// }
+
+// model PostDetail {
+//   id         String  @id @default(auto()) @map("_id") @db.ObjectId
+//   desc       String
+//   utilities  String?
+//   pet        String?
+//   income     String?
+//   size       Int?
+//   school     Int?
+//   bus        Int?
+//   restaurant Int?
+//   post       Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+//   postId     String  @unique @db.ObjectId
+// }
+
+// model SavedPost {
+//   id        String   @id @default(auto()) @map("_id") @db.ObjectId
+//   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+//   userId    String   @db.ObjectId
+//   postId    String   @db.ObjectId
+//   createdAt DateTime @default(now())
+
+//   @@unique([userId, postId])
+// }
+
+// model User {
+//   id         String      @id @default(auto()) @map("_id") @db.ObjectId
+//   email      String      @unique
+//   username   String      @unique
+//   password   String
+//   avatar     String?
+//   createdAt  DateTime    @default(now())
+//   updatedAt  DateTime    @updatedAt
+//   posts      Post[]
+//   savedPosts SavedPost[]
+//   chats      Chat[]      @relation(fields: [chatIDs], references: [id])
+//   chatIDs    String[]    @db.ObjectId
+//   sentMessages Message[] @relation("MessageSender")
+//   isOnline   Boolean     @default(false)
+//   lastSeen   DateTime    @default(now())
+// }
+
+// model Chat {
+//   id          String    @id @default(auto()) @map("_id") @db.ObjectId
+//   users       User[]    @relation(fields: [userIDs], references: [id])
+//   userIDs     String[]  @db.ObjectId
+//   createdAt   DateTime  @default(now())
+//   updatedAt   DateTime  @updatedAt
+//   seenBy      String[]  @db.ObjectId
+//   messages    Message[]
+//   lastMessage String?
+//   lastMessageAt DateTime?
+
+//   @@index([userIDs])
+// }
+
+// model Message {
+//   id        String   @id @default(auto()) @map("_id") @db.ObjectId
+//   text      String
+//   sender    User     @relation("MessageSender", fields: [userId], references: [id], onDelete: Cascade)
+//   userId    String   @db.ObjectId
+//   chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+//   chatId    String   @db.ObjectId
+//   createdAt DateTime @default(now())
+//   isRead    Boolean  @default(false)
+
+//   @@index([chatId])
+//   @@index([userId])
+// }

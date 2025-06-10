@@ -1,0 +1,86 @@
+.errorBoundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+  padding: 20px;
+
+  .errorContainer {
+    background: white;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    width: 100%;
+
+    h1 {
+      color: #dc3545;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    p {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+
+    .errorActions {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-bottom: 30px;
+
+      button {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s ease;
+
+        &.retryButton {
+          background-color: #007bff;
+          color: white;
+
+          &:hover {
+            background-color: #0056b3;
+          }
+        }
+
+        &.homeButton {
+          background-color: #6c757d;
+          color: white;
+
+          &:hover {
+            background-color: #545b62;
+          }
+        }
+      }
+    }
+
+    .errorDetails {
+      text-align: left;
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      padding: 15px;
+
+      summary {
+        cursor: pointer;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+
+      pre {
+        background-color: #e9ecef;
+        padding: 10px;
+        border-radius: 3px;
+        overflow-x: auto;
+        font-size: 12px;
+        margin: 5px 0;
+      }
+    }
+  }
+}

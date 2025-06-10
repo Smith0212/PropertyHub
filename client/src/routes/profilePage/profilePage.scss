@@ -39,6 +39,13 @@
           background-color: #fece51;
           cursor: pointer;
           border: none;
+          border-radius: 5px;
+          transition: all 0.3s ease;
+
+          &:hover {
+            background-color: #f5b041;
+            transform: translateY(-1px);
+          }
         }
       }
 
@@ -61,6 +68,12 @@
           padding: 10px 20px;
           cursor: pointer;
           border-radius: 5px;
+          transition: all 0.3s ease;
+
+          &:hover {
+            background-color: #006666;
+            transform: translateY(-1px);
+          }
         }
 
         img{
@@ -68,6 +81,59 @@
           height: 40px;
           border-radius: 50%;
           object-fit: cover;
+        }
+      }
+
+      .tabs {
+        display: flex;
+        gap: 10px;
+        border-bottom: 2px solid #f0f0f0;
+        margin-bottom: 20px;
+
+        button {
+          padding: 10px 20px;
+          border: none;
+          background: none;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          transition: all 0.3s ease;
+
+          &.active {
+            border-bottom-color: #fece51;
+            color: #fece51;
+            font-weight: bold;
+          }
+
+          &:hover {
+            background-color: #f9f9f9;
+          }
+        }
+      }
+
+      .postsContainer {
+        .noPosts {
+          text-align: center;
+          padding: 40px 20px;
+          color: #888;
+          
+          p {
+            font-size: 18px;
+            margin-bottom: 20px;
+          }
+          
+          button {
+            padding: 12px 24px;
+            background-color: #fece51;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+
+            &:hover {
+              background-color: #f5b041;
+              transform: translateY(-1px);
+            }
+          }
         }
       }
     }
