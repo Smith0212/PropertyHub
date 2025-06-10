@@ -27,6 +27,29 @@ function SinglePage() {
     }
   };
 
+  const handleChat = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+
+    if (post.userId === currentUser.id) {
+      alert("You cannot chat with yourself!");
+      return;
+    }
+
+    try {
+      const res = await apiRequest.post("/chats", { receiverId: post.userId });
+      navigate(`/profile?chat=${res.data.id}`);
+    } catch (err) {
+      console.log(err);
+      alert("Failed to start chat. Please try again.");
+    }
+  };
+
   return (
     <div className="singlePage">
       <div className="details">
@@ -137,7 +160,7 @@ function SinglePage() {
             <Map items={[post]} />
           </div>
           <div className="buttons">
-            <button>
+            <button onClick={handleChat}>
               <img src="/chat.png" alt="" />
               Send a Message
             </button>
