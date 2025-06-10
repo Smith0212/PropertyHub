@@ -15,15 +15,30 @@ const app = express()
 const server = createServer(app)
 
 // CORS configuration
+// Define allowed origins for both development and production
+const allowedOrigins = [
+  "http://localhost:5173", // Local development
+  "https://property-hub-with-chat.vercel.app", // Your production frontend
+  process.env.CLIENT_URL // Environment variable if set
+].filter(Boolean) // Remove any undefined values
+
+// CORS configuration for Express
 const corsOptions = {
-  origin: [
-    "https://property-hub-ebon.vercel.app",
-    "http://localhost:5173"
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true)
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: true,
-  optionsSuccessStatus: 200,
-};
-// Socket.IO setup with CORS
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+}// Socket.IO setup with CORS
+
 const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || "http://localhost:5173",
