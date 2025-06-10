@@ -1,7 +1,7 @@
 import axios from "axios"
 
 const apiRequest = axios.create({
-  baseURL: "http://localhost:8800/api",
+  baseURL: "https://propertyhub-j7dj.onrender.com/api",
   withCredentials: true,
   timeout: 10000,
 })

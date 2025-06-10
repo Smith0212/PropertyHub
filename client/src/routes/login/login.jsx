@@ -22,10 +22,12 @@ function Login() {
     const password = formData.get("password");
 
     try {
+      console.log("Login response11111111111:", username, password);
       const res = await apiRequest.post("/auth/login", {
         username,
         password,
       });
+      console.log("Login responsesssssssss:", res.data);
 
       updateUser(res.data)
 
