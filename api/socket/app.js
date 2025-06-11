@@ -14,26 +14,94 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js"
 const app = express()
 const server = createServer(app)
 
-// TEMPORARY: Allow all origins for debugging
-// TODO: Restrict this once we confirm it's working
+// Comprehensive CORS configuration
+const allowedOrigins = [
+  'https://property-hub-ebon.vercel.app',
+  'https://propertyhub-j7dj.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173'
+]
+
 const corsOptions = {
-  origin: true, // This allows ALL origins - TEMPORARY for debugging
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true)
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      console.log(`🚫 CORS blocked origin: ${origin}`)
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cookie',
+    'Set-Cookie',
+    'Access-Control-Allow-Credentials'
+  ],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 }
 
-console.log('🔧 CORS configured to allow ALL origins - THIS IS TEMPORARY FOR DEBUGGING')
+console.log('🔧 CORS configured for origins:', allowedOrigins)
 
-// Socket.IO setup with CORS
+// Apply CORS middleware FIRST, before any other middleware
+app.use(cors(corsOptions))
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions))
+
+// Additional CORS headers middleware (fallback)
+app.use((req, res, next) => {
+  const origin = req.headers.origin
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin)
+  }
+  res.header('Access-Control-Allow-Credentials', 'true')
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH')
+  res.header('Access-Control-Allow-Headers', 'Origin,X-Requested-With,Content-Type,Accept,Authorization,Cookie,Set-Cookie')
+  res.header('Access-Control-Expose-Headers', 'Set-Cookie')
+  
+  if (req.method === 'OPTIONS') {
+    res.status(200).end()
+    return
+  }
+  next()
+})
+
+// Body parsing middleware
+app.use(express.json({ limit: "10mb" }))
+app.use(express.urlencoded({ extended: true, limit: "10mb" }))
+app.use(cookieParser())
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'}`)
+  next()
+})
+
+// Socket.IO setup with comprehensive CORS
 const io = new Server(server, {
   cors: {
-    origin: true, // Allow all origins temporarily
+    origin: allowedOrigins,
     credentials: true,
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization", "Cookie"]
   },
-  transports: ["websocket", "polling"]
+  transports: ["websocket", "polling"],
+  allowEIO3: true,
+  pingTimeout: 60000,
+  pingInterval: 25000
 })
 
 // Store online users
@@ -117,18 +185,6 @@ io.on("connection", (socket) => {
   })
 })
 
-// Apply CORS middleware
-app.use(cors(corsOptions))
-app.use(express.json({ limit: "10mb" }))
-app.use(express.urlencoded({ extended: true, limit: "10mb" }))
-app.use(cookieParser())
-
-// Add a middleware to log all requests
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'}`)
-  next()
-})
-
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({
@@ -136,7 +192,7 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     onlineUsers: onlineUsers.size,
-    corsMode: "ALLOW_ALL_ORIGINS_TEMPORARY",
+    corsOrigins: allowedOrigins,
     requestOrigin: req.headers.origin
   })
 })
@@ -153,7 +209,7 @@ app.get("/", (req, res) => {
   res.json({
     message: "PropertyHub API is running!",
     version: "1.0.0",
-    corsMode: "ALLOW_ALL_ORIGINS_TEMPORARY",
+    corsOrigins: allowedOrigins,
     endpoints: {
       auth: "/api/auth",
       users: "/api/users",
@@ -170,12 +226,12 @@ app.use(errorHandler)
 
 const port = process.env.PORT || 8800
 
-server.listen(port, () => {
+server.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Server is running on port ${port}`)
   console.log(`📍 Health check: http://localhost:${port}/health`)
   console.log(`🌐 API base URL: http://localhost:${port}/api`)
   console.log(`🔌 Socket.IO server running on port ${port}`)
-  console.log(`⚠️  CORS: ALLOWING ALL ORIGINS - TEMPORARY FOR DEBUGGING`)
+  console.log(`✅ CORS configured for origins:`, allowedOrigins)
 })
 
 // Graceful shutdown
@@ -198,7 +254,7 @@ process.on("SIGINT", () => {
 })
 
 // Handle unhandled promise rejections
-process.on("unhandled Rejection", (reason, promise) => {
+process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason)
 })
 
@@ -210,5 +266,4 @@ process.on("uncaughtException", (error) => {
 
 // Export io for use in other files if needed
 export { io }
-
 // run: "npx prisma generate" to load environment variables
