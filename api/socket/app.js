@@ -4,7 +4,7 @@ import { Server } from "socket.io"
 // Define allowed origins for both development and production
 const allowedOrigins = [
   "http://localhost:5173", // Local development
-  "https://property-hub-with-chat.vercel.app", // Your production frontend
+  "https://property-hub-ebon.vercel.app/", // Your production frontend
   process.env.CLIENT_URL // Environment variable if set
 ].filter(Boolean) // Remove any undefined values
 
