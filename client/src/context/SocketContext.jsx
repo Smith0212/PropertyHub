@@ -15,8 +15,7 @@ export const SocketContextProvider = ({ children }) => {
   useEffect(() => {
     if (currentUser) {
       // Connect to the same port as your backend server
-      // const newSocket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:8800", {
-      const newSocket = io("http://localhost:8800", {
+      const newSocket = io("https://propertyhub-j7dj.onrender.com", {
         transports: ["websocket", "polling"],
         timeout: 20000,
         reconnection: true,

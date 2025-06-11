@@ -42,7 +42,10 @@ function SinglePage() {
     }
 
     try {
+      console.log("1111111111111111111")
       const res = await apiRequest.post("/chats", { receiverId: post.userId });
+      console.log("2222222222222222222: ", res.data);
+
       navigate(`/profile?chat=${res.data.id}`);
     } catch (err) {
       console.log(err);

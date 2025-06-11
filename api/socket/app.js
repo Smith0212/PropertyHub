@@ -1,14 +1,20 @@
 import { Server } from "socket.io"
 
-const io = new Server({
+// CORS configuration
+// Define allowed origins for both development and production
+const allowedOrigins = [
+  "http://localhost:5173", // Local development
+  "https://property-hub-with-chat.vercel.app", // Your production frontend
+  process.env.CLIENT_URL // Environment variable if set
+].filter(Boolean) // Remove any undefined values
+
+const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    methods: ["GET", "POST"],
+    origin: allowedOrigins,
     credentials: true,
+    methods: ["GET", "POST"]
   },
-  transports: ["websocket", "polling"],
-  pingTimeout: 60000,
-  pingInterval: 25000,
+  transports: ["websocket", "polling"]
 })
 
 let onlineUsers = []
