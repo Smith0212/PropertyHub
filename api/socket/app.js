@@ -14,35 +14,22 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js"
 const app = express()
 const server = createServer(app)
 
-// Define allowed origins for both development and production
-const allowedOrigins = [
-  "http://localhost:5173", // Local development
-  "https://property-hub-ebon.vercel.app", // Your actual production frontend
-  "https://property-hub-with-chat.vercel.app", // Alternative frontend URL
-  process.env.CLIENT_URL // Environment variable if set
-].filter(Boolean) // Remove any undefined values
-
-// CORS configuration for Express
+// TEMPORARY: Allow all origins for debugging
+// TODO: Restrict this once we confirm it's working
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true)
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
+  origin: true, // This allows ALL origins - TEMPORARY for debugging
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 }
 
-// Socket.IO setup with updated CORS
+console.log('🔧 CORS configured to allow ALL origins - THIS IS TEMPORARY FOR DEBUGGING')
+
+// Socket.IO setup with CORS
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: true, // Allow all origins temporarily
     credentials: true,
     methods: ["GET", "POST"]
   },
@@ -130,10 +117,17 @@ io.on("connection", (socket) => {
   })
 })
 
+// Apply CORS middleware
 app.use(cors(corsOptions))
 app.use(express.json({ limit: "10mb" }))
 app.use(express.urlencoded({ extended: true, limit: "10mb" }))
 app.use(cookieParser())
+
+// Add a middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'}`)
+  next()
+})
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -141,7 +135,9 @@ app.get("/health", (req, res) => {
     status: "OK",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    onlineUsers: onlineUsers.size
+    onlineUsers: onlineUsers.size,
+    corsMode: "ALLOW_ALL_ORIGINS_TEMPORARY",
+    requestOrigin: req.headers.origin
   })
 })
 
@@ -157,13 +153,14 @@ app.get("/", (req, res) => {
   res.json({
     message: "PropertyHub API is running!",
     version: "1.0.0",
+    corsMode: "ALLOW_ALL_ORIGINS_TEMPORARY",
     endpoints: {
       auth: "/api/auth",
       users: "/api/users",
       posts: "/api/posts",
       chats: "/api/chats",
       messages: "/api/messages",
-    },
+    }
   })
 })
 
@@ -178,7 +175,7 @@ server.listen(port, () => {
   console.log(`📍 Health check: http://localhost:${port}/health`)
   console.log(`🌐 API base URL: http://localhost:${port}/api`)
   console.log(`🔌 Socket.IO server running on port ${port}`)
-  console.log(`✅ CORS enabled for origins: ${allowedOrigins.join(', ')}`)
+  console.log(`⚠️  CORS: ALLOWING ALL ORIGINS - TEMPORARY FOR DEBUGGING`)
 })
 
 // Graceful shutdown
@@ -201,7 +198,7 @@ process.on("SIGINT", () => {
 })
 
 // Handle unhandled promise rejections
-process.on("unhandledRejection", (reason, promise) => {
+process.on("unhandled Rejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason)
 })
 
