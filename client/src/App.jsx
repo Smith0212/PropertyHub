@@ -26,18 +26,18 @@ function App() {
           loader: listPageLoader,
         },
         {
-          path: "/:id",
-          element: <SinglePage />,
-          loader: singlePageLoader,
-        },
-
-        {
           path: "/login",
           element: <Login />,
         },
         {
           path: "/register",
           element: <Register />,
+        },
+        {
+          // Move the dynamic route to the end so it doesn't catch static routes
+          path: "/property/:id",
+          element: <SinglePage />,
+          loader: singlePageLoader,
         },
       ],
     },
@@ -61,7 +61,6 @@ function App() {
       ],
     },
   ]);
-
   return <RouterProvider router={router} />;
 }
 

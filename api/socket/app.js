@@ -1,13 +1,45 @@
+import express from "express"
+import cors from "cors"
+import cookieParser from "cookie-parser"
+import { createServer } from "http"
 import { Server } from "socket.io"
+import authRoute from "./routes/auth.route.js"
+import postRoute from "./routes/post.route.js"
+import testRoute from "./routes/test.route.js"
+import userRoute from "./routes/user.route.js"
+import chatRoute from "./routes/chat.route.js"
+import messageRoute from "./routes/message.route.js"
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js"
 
-// CORS configuration
+const app = express()
+const server = createServer(app)
+
 // Define allowed origins for both development and production
 const allowedOrigins = [
   "http://localhost:5173", // Local development
-  "https://property-hub-ebon.vercel.app/", // Your production frontend
+  "https://property-hub-ebon.vercel.app", // Your actual production frontend
+  "https://property-hub-with-chat.vercel.app", // Alternative frontend URL
   process.env.CLIENT_URL // Environment variable if set
 ].filter(Boolean) // Remove any undefined values
 
+// CORS configuration for Express
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true)
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+}
+
+// Socket.IO setup with updated CORS
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -17,178 +49,169 @@ const io = new Server(server, {
   transports: ["websocket", "polling"]
 })
 
-let onlineUsers = []
+// Store online users
+const onlineUsers = new Map()
 
-const addUser = (userId, socketId) => {
-  try {
-    const userExists = onlineUsers.find((user) => user.userId === userId)
-    if (!userExists) {
-      onlineUsers.push({ userId, socketId })
-      console.log(`✅ User ${userId} connected`)
-    } else {
-      // Update socket ID if user reconnects
-      userExists.socketId = socketId
-      console.log(`🔄 User ${userId} reconnected`)
-    }
-  } catch (error) {
-    console.error("Error adding user:", error)
-  }
-}
-
-const removeUser = (socketId) => {
-  try {
-    const user = onlineUsers.find((user) => user.socketId === socketId)
-    if (user) {
-      console.log(`❌ User ${user.userId} disconnected`)
-    }
-    onlineUsers = onlineUsers.filter((user) => user.socketId !== socketId)
-  } catch (error) {
-    console.error("Error removing user:", error)
-  }
-}
-
-const getUser = (userId) => {
-  return onlineUsers.find((user) => user.userId === userId)
-}
-
-const getOnlineUsers = () => {
-  return onlineUsers.map((user) => user.userId)
-}
-
+// Socket.IO connection handling
 io.on("connection", (socket) => {
-  console.log("🔌 A user connected:", socket.id)
+  console.log(`User connected: ${socket.id}`)
 
+  // Handle new user joining
   socket.on("newUser", (userId) => {
-    try {
-      if (userId && typeof userId === "string") {
-        addUser(userId, socket.id)
-
-        // Broadcast online users to all clients
-        io.emit("getOnlineUsers", getOnlineUsers())
-
-        // Notify others that this user is online
-        socket.broadcast.emit("userOnline", userId)
-      } else {
-        console.error("Invalid userId provided:", userId)
-      }
-    } catch (error) {
-      console.error("Error handling newUser:", error)
+    if (userId) {
+      onlineUsers.set(socket.id, userId)
+      console.log(`User ${userId} is now online`)
+      
+      // Send updated online users list to all clients
+      const userIds = Array.from(onlineUsers.values())
+      io.emit("getOnlineUsers", userIds)
+      
+      // Notify others that this user came online
+      socket.broadcast.emit("userOnline", userId)
     }
   })
 
-  socket.on("sendMessage", ({ receiverId, data }) => {
-    try {
-      if (!receiverId || !data) {
-        console.error("Invalid message data:", { receiverId, data })
-        return
-      }
+  // Handle sending messages
+  socket.on("sendMessage", (data) => {
+    const { receiverId, message, senderId, chatId } = data
+    
+    // Find receiver's socket
+    const receiverSocketId = Array.from(onlineUsers.entries())
+      .find(([socketId, userId]) => userId === receiverId)?.[0]
+    
+    if (receiverSocketId) {
+      // Send message to specific receiver
+      io.to(receiverSocketId).emit("getMessage", {
+        senderId,
+        message,
+        chatId,
+        timestamp: new Date()
+      })
+    }
+    
+    // Also send back to sender for confirmation
+    socket.emit("messageConfirmed", {
+      senderId,
+      receiverId,
+      message,
+      chatId,
+      timestamp: new Date()
+    })
+  })
 
-      const receiver = getUser(receiverId)
-      if (receiver) {
-        io.to(receiver.socketId).emit("getMessage", {
-          ...data,
-          chatId: data.chatId,
-        })
-        console.log(`📨 Message sent from ${data.userId} to ${receiverId}`)
-      } else {
-        console.log(`📱 User ${receiverId} is offline`)
-      }
-    } catch (error) {
-      console.error("Error sending message:", error)
+  // Handle typing indicators
+  socket.on("typing", (data) => {
+    const { receiverId, isTyping, senderId } = data
+    const receiverSocketId = Array.from(onlineUsers.entries())
+      .find(([socketId, userId]) => userId === receiverId)?.[0]
+    
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("userTyping", {
+        userId: senderId,
+        isTyping
+      })
     }
   })
 
-  socket.on("joinChat", (chatId) => {
-    try {
-      if (chatId && typeof chatId === "string") {
-        socket.join(chatId)
-        console.log(`🏠 Socket ${socket.id} joined chat ${chatId}`)
-      }
-    } catch (error) {
-      console.error("Error joining chat:", error)
+  // Handle user disconnect
+  socket.on("disconnect", () => {
+    const userId = onlineUsers.get(socket.id)
+    if (userId) {
+      onlineUsers.delete(socket.id)
+      console.log(`User ${userId} disconnected`)
+      
+      // Send updated online users list
+      const userIds = Array.from(onlineUsers.values())
+      io.emit("getOnlineUsers", userIds)
+      
+      // Notify others that this user went offline
+      socket.broadcast.emit("userOffline", userId)
     }
-  })
-
-  socket.on("leaveChat", (chatId) => {
-    try {
-      if (chatId && typeof chatId === "string") {
-        socket.leave(chatId)
-        console.log(`🚪 Socket ${socket.id} left chat ${chatId}`)
-      }
-    } catch (error) {
-      console.error("Error leaving chat:", error)
-    }
-  })
-
-  socket.on("typing", ({ chatId, userId, isTyping }) => {
-    try {
-      if (chatId && userId && typeof isTyping === "boolean") {
-        socket.to(chatId).emit("userTyping", { userId, isTyping })
-      }
-    } catch (error) {
-      console.error("Error handling typing:", error)
-    }
-  })
-
-  socket.on("disconnect", (reason) => {
-    console.log("🔌 User disconnected:", socket.id, "Reason:", reason)
-
-    try {
-      const user = onlineUsers.find((user) => user.socketId === socket.id)
-
-      if (user) {
-        // Notify others that this user is offline
-        socket.broadcast.emit("userOffline", user.userId)
-      }
-
-      removeUser(socket.id)
-
-      // Broadcast updated online users list
-      io.emit("getOnlineUsers", getOnlineUsers())
-    } catch (error) {
-      console.error("Error handling disconnect:", error)
-    }
-  })
-
-  // Handle connection errors
-  socket.on("error", (error) => {
-    console.error("🚨 Socket error:", error)
   })
 })
 
-const PORT = process.env.SOCKET_PORT || 4000
+app.use(cors(corsOptions))
+app.use(express.json({ limit: "10mb" }))
+app.use(express.urlencoded({ extended: true, limit: "10mb" }))
+app.use(cookieParser())
 
-const server = io.listen(PORT, () => {
-  console.log(`🚀 Socket.IO server running on port ${PORT}`)
-  console.log(`📊 Online users: ${onlineUsers.length}`)
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    onlineUsers: onlineUsers.size
+  })
+})
+
+// API routes
+app.use("/api/auth", authRoute)
+app.use("/api/users", userRoute)
+app.use("/api/posts", postRoute)
+app.use("/api/test", testRoute)
+app.use("/api/chats", chatRoute)
+app.use("/api/messages", messageRoute)
+
+app.get("/", (req, res) => {
+  res.json({
+    message: "PropertyHub API is running!",
+    version: "1.0.0",
+    endpoints: {
+      auth: "/api/auth",
+      users: "/api/users",
+      posts: "/api/posts",
+      chats: "/api/chats",
+      messages: "/api/messages",
+    },
+  })
+})
+
+// Error handling middleware (must be last)
+app.use(notFoundHandler)
+app.use(errorHandler)
+
+const port = process.env.PORT || 8800
+
+server.listen(port, () => {
+  console.log(`🚀 Server is running on port ${port}`)
+  console.log(`📍 Health check: http://localhost:${port}/health`)
+  console.log(`🌐 API base URL: http://localhost:${port}/api`)
+  console.log(`🔌 Socket.IO server running on port ${port}`)
+  console.log(`✅ CORS enabled for origins: ${allowedOrigins.join(', ')}`)
 })
 
 // Graceful shutdown
-const gracefulShutdown = () => {
-  console.log("🛑 Shutting down Socket.IO server...")
-
-  // Notify all clients about server shutdown
-  io.emit("serverShutdown", "Server is shutting down")
-
-  // Close all connections
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, shutting down gracefully")
   io.close(() => {
-    console.log("✅ Socket.IO server closed")
-    process.exit(0)
+    server.close(() => {
+      process.exit(0)
+    })
   })
-}
+})
 
-process.on("SIGTERM", gracefulShutdown)
-process.on("SIGINT", gracefulShutdown)
+process.on("SIGINT", () => {
+  console.log("SIGINT received, shutting down gracefully")
+  io.close(() => {
+    server.close(() => {
+      process.exit(0)
+    })
+  })
+})
 
 // Handle unhandled promise rejections
 process.on("unhandledRejection", (reason, promise) => {
-  console.error("🚨 Unhandled Rejection at:", promise, "reason:", reason)
+  console.error("Unhandled Rejection at:", promise, "reason:", reason)
 })
 
 // Handle uncaught exceptions
 process.on("uncaughtException", (error) => {
-  console.error("🚨 Uncaught Exception:", error)
-  gracefulShutdown()
+  console.error("Uncaught Exception:", error)
+  process.exit(1)
 })
 
-export default server
+// Export io for use in other files if needed
+export { io }
+
+// run: "npx prisma generate" to load environment variables
