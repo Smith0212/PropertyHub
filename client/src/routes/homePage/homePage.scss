@@ -2,58 +2,145 @@
 
 .homePage {
   display: flex;
-  height: 100%;
+  min-height: calc(100vh - 80px);
+  align-items: center;
+
+  @include md {
+    flex-direction: column;
+    text-align: center;
+    padding: 40px 0;
+  }
 
   .textContainer {
     flex: 3;
+    padding-right: 60px;
+
+    @include lg {
+      padding-right: 40px;
+    }
+
+    @include md {
+      padding-right: 0;
+      margin-bottom: 40px;
+    }
 
     .wrapper {
-      padding-right: 100px;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 50px;
+      gap: 40px;
       height: 100%;
 
-      @include lg{
-        padding-right: 50px;
-      }
-
-      @include md{
-        padding: 0;
-      }
-
-      @include sm{
-        justify-content: flex-start;
+      @include sm {
+        gap: 30px;
       }
 
       .title {
-        font-size: 64px;
+        font-size: 56px;
+        font-weight: 700;
+        color: #333;
+        line-height: 1.2;
+        margin-bottom: 20px;
 
         @include lg {
           font-size: 48px;
         }
+
+        @include md {
+          font-size: 40px;
+        }
+
+        @include sm {
+          font-size: 32px;
+        }
+      }
+
+      p {
+        font-size: 18px;
+        line-height: 1.6;
+        color: #666;
+        margin-bottom: 30px;
+        max-width: 500px;
+
+        @include md {
+          max-width: none;
+          margin: 0 auto 30px;
+        }
+
+        @include sm {
+          font-size: 16px;
+        }
       }
 
       .boxes {
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 30px;
+        margin-top: 20px;
+
+        @include md {
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+          max-width: 600px;
+          margin: 20px auto 0;
+        }
 
         @include sm {
-          display: none;
+          grid-template-columns: 1fr;
+          gap: 20px;
+          max-width: 300px;
         }
 
-        h1 {
-          font-size: 36px;
+        .box {
+          background-color: white;
+          padding: 30px 20px;
+          border-radius: 16px;
+          text-align: center;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
 
-          @include lg {
-            font-size: 32px;
+          &:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
           }
-        }
 
-        h2 {
-          font-size: 20px;
-          font-weight: 300;
+          @include md {
+            padding: 25px 15px;
+          }
+
+          @include sm {
+            padding: 20px 15px;
+          }
+
+          h1 {
+            font-size: 36px;
+            font-weight: 700;
+            color: #fece51;
+            margin-bottom: 8px;
+
+            @include lg {
+              font-size: 32px;
+            }
+
+            @include md {
+              font-size: 28px;
+            }
+
+            @include sm {
+              font-size: 24px;
+            }
+          }
+
+          h2 {
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            margin: 0;
+
+            @include sm {
+              font-size: 14px;
+            }
+          }
         }
       }
     }
@@ -61,24 +148,51 @@
 
   .imgContainer {
     flex: 2;
-    background-color: #fcf5f3;
+    background: linear-gradient(135deg, #fece51 0%, #f7b731 100%);
     position: relative;
     display: flex;
     align-items: center;
-    z-index: -1;
+    justify-content: center;
+    border-radius: 20px;
+    overflow: hidden;
+    min-height: 500px;
 
     @include md {
-      display: none;
+      min-height: 400px;
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    @include sm {
+      min-height: 300px;
+      border-radius: 16px;
     }
 
     img {
-      width: 115%;
-      position: absolute;
-      right: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: scale(1.05);
+      }
 
       @include lg {
-        width: 105%;
+        width: 100%;
       }
+    }
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(254, 206, 81, 0.1) 0%, rgba(247, 183, 49, 0.1) 100%);
+      z-index: 1;
     }
   }
 }

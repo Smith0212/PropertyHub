@@ -1,28 +1,42 @@
 @import "../../responsive.scss";
 
 nav {
-  height: 100px;
+  height: 80px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  width: 100%;
 
-  a {
-    transition: all 0.4s ease;
+  &.scrolled {
+    height: 70px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
 
-    @include sm {
-      display: none;
-    }
+  // Add max-width container inside nav for content
+  .nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
 
-    &:hover {
-      scale: 1.05;
+    @include lg {
+      max-width: 1200px;
     }
   }
 
   .left {
-    flex: 3;
     display: flex;
     align-items: center;
-    gap: 50px;
+    gap: 40px;
 
     .logo {
       font-weight: bold;
@@ -30,123 +44,229 @@ nav {
       display: flex;
       align-items: center;
       gap: 10px;
+      transition: transform 0.3s ease;
 
-      img {
-        width: 28px;
+      &:hover {
+        transform: scale(1.05);
       }
 
-      span {
-        @include md {
+      img {
+        width: 32px;
+        height: 32px;
+      }
+
+      @include md {
+        span {
           display: none;
         }
+      }
 
-        @include sm {
+      @include sm {
+        span {
           display: initial;
         }
       }
     }
-  }
-  .right {
-    flex: 2;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    background-color: #fcf5f3;
-    height: 100%;
 
-    @include md {
-      background-color: transparent;
-    }
-
-    a {
-      padding: 12px 24px;
-      margin: 20px;
-    }
-
-    .user{
+    .nav-links {
       display: flex;
-      align-items: center;
-      font-weight: bold;
+      gap: 30px;
 
-      img{
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-        margin-right: 20px;
+      @include sm {
+        display: none;
       }
 
-      span{
-        @include sm{
-          display: none;
+      a {
+        position: relative;
+        color: #555;
+        font-weight: 500;
+        transition: color 0.3s ease;
+        padding: 5px 0;
+
+        &:hover {
+          color: #fece51;
+        }
+
+        &.active {
+          color: #fece51;
+          font-weight: 600;
+
+          &:after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #fece51;
+          }
+        }
+      }
+    }
+  }
+
+  .right {
+    display: flex;
+    align-items: center;
+    position: relative;
+
+    .auth-buttons {
+      display: flex;
+      gap: 15px;
+
+      @include sm {
+        display: none;
+      }
+
+      .login-btn {
+        padding: 8px 16px;
+        color: #333;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background-color: #f5f5f5;
         }
       }
 
-      .profile{
-        padding: 12px 24px;
+      .register-btn {
+        padding: 8px 16px;
         background-color: #fece51;
-        cursor: pointer;
-        border: none;
+        color: #333;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background-color: darken(#fece51, 5%);
+          transform: translateY(-2px);
+        }
+      }
+    }
+
+    .user {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+
+      @include sm {
+        display: none;
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        img {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          object-fit: cover;
+        }
+
+        span {
+          font-weight: 500;
+          color: #333;
+        }
+      }
+
+      .profile-link {
+        padding: 8px 16px;
+        background-color: #fece51;
+        color: #333;
+        border-radius: 4px;
         position: relative;
-        
-        .notification{
+        font-weight: 500;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background-color: darken(#fece51, 5%);
+          transform: translateY(-2px);
+        }
+
+        .notification {
           position: absolute;
           top: -8px;
           right: -8px;
-          background-color: red;
+          background-color: #ff4757;
           color: white;
           border-radius: 50%;
-          width: 26px;
-          height: 26px;
+          width: 20px;
+          height: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
+          font-size: 12px;
+          font-weight: bold;
+          border: 2px solid white;
         }
-
       }
     }
 
-    .register {
-      background-color: #fece51;
-    }
-
-    .menuIcon {
+    .menu-toggle {
       display: none;
-      z-index: 999;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #333;
+      padding: 8px;
+      border-radius: 4px;
+      transition: background-color 0.3s ease;
 
-      img {
-        width: 36px;
-        height: 36px;
-        cursor: pointer;
+      &:hover {
+        background-color: #f5f5f5;
       }
 
       @include sm {
-        display: inline;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
     }
 
-    .menu {
-      position: absolute;
-      top: 0;
-      right: -50%;
-      background-color: black;
-      color: white;
-      height: 100vh;
-      width: 50%;
-      transition: all 1s ease;
+    .mobile-menu {
+      position: fixed;
+      top: 80px;
+      right: -100%;
+      width: 70%;
+      height: calc(100vh - 80px);
+      background-color: white;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
+      padding: 20px;
+      transition: right 0.3s ease;
+      box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+      z-index: 100;
 
       &.active {
         right: 0;
       }
 
-      @include sm {
-        a {
-          display: initial;
+      a {
+        padding: 15px 0;
+        border-bottom: 1px solid #eee;
+        font-size: 18px;
+        font-weight: 500;
+        color: #333;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .mobile-notification {
+          background-color: #ff4757;
+          color: white;
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: bold;
         }
       }
     }

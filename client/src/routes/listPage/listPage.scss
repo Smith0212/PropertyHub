@@ -2,28 +2,63 @@
 
 .listPage {
   display: flex;
-  height: 100%;
+  min-height: calc(100vh - 80px);
+  gap: 30px;
+  padding: 20px 0;
+
+  @include md {
+    flex-direction: column;
+    gap: 20px;
+  }
 
   .listContainer {
     flex: 3;
-    height: 100%;
 
-    .wrapper{
-      height: 100%;
-      padding-right: 50px;
+    .wrapper {
       display: flex;
       flex-direction: column;
-      gap: 50px;
-      overflow-y: scroll;
-      padding-bottom: 50px;
+      gap: 30px;
+      height: 100%;
+      overflow-y: auto;
+      padding-right: 20px;
+
+      @include md {
+        padding-right: 0;
+        height: auto;
+      }
+
+      /* Custom scrollbar */
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #fece51;
+        border-radius: 3px;
+
+        &:hover {
+          background: #f7b731;
+        }
+      }
     }
   }
+
   .mapContainer {
     flex: 2;
-    height: 100%;
-    background-color: #fcf5f3;
+    background-color: #f8f9fa;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    position: sticky;
+    top: 100px;
+    height: calc(100vh - 120px);
 
-    @include md{
+    @include md {
       display: none;
     }
   }

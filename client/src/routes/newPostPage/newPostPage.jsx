@@ -44,7 +44,7 @@ function NewPostPage() {
           restaurant: parseInt(inputs.restaurant),
         },
       });
-      navigate("/" + res.data.id)
+      navigate("/property/" + res.data.id)
     } catch (err) {
       console.log(err);
       setError(error);

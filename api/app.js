@@ -19,21 +19,21 @@ const server = createServer(app)
 const corsOptions = {
   origin: true, // This allows ALL origins - TEMPORARY for debugging
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  optionsSuccessStatus: 200, // Some legacy browsers (IE11, various SmartTVs) choke on 204
 }
 
-console.log('🔧 CORS configured to allow ALL origins - THIS IS TEMPORARY FOR DEBUGGING')
+console.log("🔧 CORS configured to allow ALL origins - THIS IS TEMPORARY FOR DEBUGGING")
 
 // Socket.IO setup with CORS
 const io = new Server(server, {
   cors: {
     origin: true, // Allow all origins temporarily
     credentials: true,
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
   },
-  transports: ["websocket", "polling"]
+  transports: ["websocket", "polling"],
 })
 
 // Store online users
@@ -44,15 +44,31 @@ io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`)
 
   // Handle new user joining
-  socket.on("newUser", (userId) => {
+  socket.on("newUser", async (userId) => {
     if (userId) {
       onlineUsers.set(socket.id, userId)
       console.log(`User ${userId} is now online`)
-      
+
+      // Update user's online status in database
+      try {
+        const { PrismaClient } = await import("@prisma/client")
+        const prisma = new PrismaClient()
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            isOnline: true,
+            lastSeen: new Date(),
+          },
+        })
+        await prisma.$disconnect()
+      } catch (error) {
+        console.error("Error updating online status:", error)
+      }
+
       // Send updated online users list to all clients
       const userIds = Array.from(onlineUsers.values())
       io.emit("getOnlineUsers", userIds)
-      
+
       // Notify others that this user came online
       socket.broadcast.emit("userOnline", userId)
     }
@@ -60,42 +76,45 @@ io.on("connection", (socket) => {
 
   // Handle sending messages
   socket.on("sendMessage", (data) => {
-    const { receiverId, message, senderId, chatId } = data
-    
+    const { receiverId, message, senderId, chatId, senderUsername, senderAvatar, id, timestamp } = data
+
     // Find receiver's socket
-    const receiverSocketId = Array.from(onlineUsers.entries())
-      .find(([socketId, userId]) => userId === receiverId)?.[0]
-    
+    const receiverSocketId = Array.from(onlineUsers.entries()).find(([socketId, userId]) => userId === receiverId)?.[0]
+
     if (receiverSocketId) {
-      // Send message to specific receiver
+      // Send message to specific receiver with all necessary data
       io.to(receiverSocketId).emit("getMessage", {
+        id: id || Date.now().toString(),
         senderId,
         message,
+        text: message, // Include both for compatibility
         chatId,
-        timestamp: new Date()
+        timestamp: timestamp || new Date(),
+        senderUsername: senderUsername || "Unknown",
+        senderAvatar: senderAvatar || "/noavatar.jpg",
       })
     }
-    
+
     // Also send back to sender for confirmation
     socket.emit("messageConfirmed", {
+      id: id || Date.now().toString(),
       senderId,
       receiverId,
       message,
       chatId,
-      timestamp: new Date()
+      timestamp: timestamp || new Date(),
     })
   })
 
   // Handle typing indicators
   socket.on("typing", (data) => {
     const { receiverId, isTyping, senderId } = data
-    const receiverSocketId = Array.from(onlineUsers.entries())
-      .find(([socketId, userId]) => userId === receiverId)?.[0]
-    
+    const receiverSocketId = Array.from(onlineUsers.entries()).find(([socketId, userId]) => userId === receiverId)?.[0]
+
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("userTyping", {
         userId: senderId,
-        isTyping
+        isTyping,
       })
     }
   })
@@ -106,11 +125,31 @@ io.on("connection", (socket) => {
     if (userId) {
       onlineUsers.delete(socket.id)
       console.log(`User ${userId} disconnected`)
-      
+
+      // Update user's last seen in database
+      const updateLastSeen = async () => {
+        try {
+          // Import prisma if not already imported
+          const { PrismaClient } = await import("@prisma/client")
+          const prisma = new PrismaClient()
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              isOnline: false,
+              lastSeen: new Date(),
+            },
+          })
+          await prisma.$disconnect()
+        } catch (error) {
+          console.error("Error updating last seen:", error)
+        }
+      }
+      updateLastSeen()
+
       // Send updated online users list
       const userIds = Array.from(onlineUsers.values())
       io.emit("getOnlineUsers", userIds)
-      
+
       // Notify others that this user went offline
       socket.broadcast.emit("userOffline", userId)
     }
@@ -125,7 +164,7 @@ app.use(cookieParser())
 
 // Add a middleware to log all requests
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin || 'No origin'}`)
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin || "No origin"}`)
   next()
 })
 
@@ -137,7 +176,7 @@ app.get("/health", (req, res) => {
     uptime: process.uptime(),
     onlineUsers: onlineUsers.size,
     corsMode: "ALLOW_ALL_ORIGINS_TEMPORARY",
-    requestOrigin: req.headers.origin
+    requestOrigin: req.headers.origin,
   })
 })
 
@@ -160,7 +199,7 @@ app.get("/", (req, res) => {
       posts: "/api/posts",
       chats: "/api/chats",
       messages: "/api/messages",
-    }
+    },
   })
 })
 

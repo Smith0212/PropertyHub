@@ -22,7 +22,7 @@ export const SocketContextProvider = ({ children }) => {
         reconnectionDelay: 1000,
         reconnectionAttempts: 5,
         maxReconnectionAttempts: 5,
-        withCredentials: true
+        withCredentials: true,
       })
 
       newSocket.on("connect", () => {
@@ -63,32 +63,18 @@ export const SocketContextProvider = ({ children }) => {
       })
 
       newSocket.on("getOnlineUsers", (users) => {
+        console.log("Online users updated:", users)
         setOnlineUsers(users || [])
       })
 
       newSocket.on("userOnline", (userId) => {
+        console.log("User came online:", userId)
         setOnlineUsers((prev) => [...new Set([...prev, userId])])
       })
 
       newSocket.on("userOffline", (userId) => {
+        console.log("User went offline:", userId)
         setOnlineUsers((prev) => prev.filter((id) => id !== userId))
-      })
-
-      // Handle incoming messages
-      newSocket.on("getMessage", (data) => {
-        console.log("Received message:", data)
-        // You can dispatch this to a global state or handle it in your chat component
-      })
-
-      // Handle message confirmation
-      newSocket.on("messageConfirmed", (data) => {
-        console.log("Message confirmed:", data)
-      })
-
-      // Handle typing indicators
-      newSocket.on("userTyping", (data) => {
-        console.log("User typing:", data)
-        // Handle typing indicator in your chat component
       })
 
       setSocket(newSocket)
@@ -108,6 +94,43 @@ export const SocketContextProvider = ({ children }) => {
     }
   }, [currentUser])
 
+  // Update online status periodically
+  useEffect(() => {
+    if (!currentUser || !socket) return
+
+    const updateStatus = async () => {
+      try {
+        await fetch("https://propertyhub-j7dj.onrender.com/api/users/status", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ isOnline: true }),
+        })
+      } catch (err) {
+        console.error("Failed to update online status:", err)
+      }
+    }
+
+    // Update status immediately and then every 30 seconds
+    updateStatus()
+    const interval = setInterval(updateStatus, 30000)
+
+    return () => {
+      clearInterval(interval)
+      // Set offline status when unmounting
+      fetch("https://propertyhub-j7dj.onrender.com/api/users/status", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ isOnline: false }),
+      }).catch((err) => console.error("Failed to update offline status:", err))
+    }
+  }, [currentUser, socket])
+
   // Helper functions to use in your components
   const sendMessage = (receiverId, message, chatId) => {
     if (socket && currentUser) {
@@ -115,7 +138,9 @@ export const SocketContextProvider = ({ children }) => {
         senderId: currentUser.id,
         receiverId,
         message,
-        chatId
+        chatId,
+        senderUsername: currentUser.username,
+        senderAvatar: currentUser.avatar,
       })
     }
   }
@@ -125,19 +150,19 @@ export const SocketContextProvider = ({ children }) => {
       socket.emit("typing", {
         senderId: currentUser.id,
         receiverId,
-        isTyping
+        isTyping,
       })
     }
   }
 
   return (
-    <SocketContext.Provider 
-      value={{ 
-        socket, 
-        onlineUsers, 
-        connectionStatus, 
-        sendMessage, 
-        sendTyping 
+    <SocketContext.Provider
+      value={{
+        socket,
+        onlineUsers,
+        connectionStatus,
+        sendMessage,
+        sendTyping,
       }}
     >
       {children}

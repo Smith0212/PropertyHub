@@ -1,55 +1,90 @@
+@import "../../responsive.scss";
+
 .filter {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 30px;
 
   h1 {
-    font-weight: 300;
+    font-weight: 400;
     font-size: 24px;
+    margin-bottom: 20px;
+    color: #333;
+
+    b {
+      color: #fece51;
+      font-weight: 600;
+    }
   }
 
-  .item {
+  .filter-container {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 20px;
+  }
+
+  .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+
+    @include sm {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  .filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 120px;
+
+    &.location {
+      flex: 2;
+      min-width: 200px;
+    }
 
     label {
-      font-size: 10px;
+      font-size: 14px;
+      color: #666;
+      font-weight: 500;
     }
 
     input,
     select {
-      width: 100px;
-      padding: 10px;
+      padding: 12px 16px;
       border: 1px solid #e0e0e0;
-      border-radius: 5px;
+      border-radius: 8px;
       font-size: 14px;
-    }
-  }
+      color: #333;
+      background-color: #f9f9f9;
+      transition: all 0.3s ease;
 
-  .top {
-    input {
-      width: 100%;
-    }
-  }
-
-  .bottom {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 20px;
-
-    button {
-      width: 100px;
-      padding: 10px;
-      border: none;
-      cursor: pointer;
-      background-color: #fece51;
-
-      img {
-        width: 24px;
-        height: 24px;
+      &:focus {
+        outline: none;
+        border-color: #fece51;
+        background-color: white;
+        box-shadow: 0 0 0 2px rgba(254, 206, 81, 0.2);
       }
+
+      &::placeholder {
+        color: #aaa;
+      }
+    }
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      padding-right: 40px;
     }
   }
 }
