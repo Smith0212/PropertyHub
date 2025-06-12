@@ -1,5 +1,18 @@
 import axios from "axios"
 
+// Determine the API URL based on environment
+const getApiUrl = () => {
+  if (typeof window !== "undefined") {
+    // Client-side
+    if (window.location.hostname === "localhost") {
+      return "http://localhost:8800/api"
+    }
+    return "https://propertyhub-j7dj.onrender.com/api"
+  }
+  // Server-side or build time
+  return "https://propertyhub-j7dj.onrender.com/api"
+}
+
 const apiRequest = axios.create({
   baseURL: "https://propertyhub-j7dj.onrender.com/api",
   withCredentials: true,

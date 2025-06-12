@@ -1,8 +1,6 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
-import { createServer } from "http"
-import { Server } from "socket.io"
 import authRoute from "./routes/auth.route.js"
 import postRoute from "./routes/post.route.js"
 import testRoute from "./routes/test.route.js"
@@ -12,7 +10,6 @@ import messageRoute from "./routes/message.route.js"
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js"
 
 const app = express()
-const server = createServer(app)
 
 // Comprehensive CORS configuration
 const allowedOrigins = [
@@ -216,7 +213,8 @@ app.get("/", (req, res) => {
       posts: "/api/posts",
       chats: "/api/chats",
       messages: "/api/messages",
-    }
+      health: "/health",
+    },
   })
 })
 
@@ -237,20 +235,12 @@ server.listen(port, '0.0.0.0', () => {
 // Graceful shutdown
 process.on("SIGTERM", () => {
   console.log("SIGTERM received, shutting down gracefully")
-  io.close(() => {
-    server.close(() => {
-      process.exit(0)
-    })
-  })
+  process.exit(0)
 })
 
 process.on("SIGINT", () => {
   console.log("SIGINT received, shutting down gracefully")
-  io.close(() => {
-    server.close(() => {
-      process.exit(0)
-    })
-  })
+  process.exit(0)
 })
 
 // Handle unhandled promise rejections
