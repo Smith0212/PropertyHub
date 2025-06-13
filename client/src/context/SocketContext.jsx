@@ -141,6 +141,7 @@ export const SocketContextProvider = ({ children }) => {
         chatId,
         senderUsername: currentUser.username,
         senderAvatar: currentUser.avatar,
+        timestamp: new Date().toISOString(),
       })
     }
   }

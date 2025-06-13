@@ -23,6 +23,7 @@ function Chat({ chats: initialChats, initialChatId }) {
   const messageEndRef = useRef()
   const textareaRef = useRef()
   const typingTimeoutRef = useRef(null)
+  const processedMessagesRef = useRef(new Set()) // Track processed messages to avoid duplicates
 
   const decrease = useNotificationStore((state) => state.decrease)
 
@@ -49,27 +50,60 @@ function Chat({ chats: initialChats, initialChatId }) {
     const handleGetMessage = (data) => {
       console.log("Received message:", data)
 
+      // Generate a unique ID for this message to avoid duplicates
+      const messageId = data.id || `${data.senderId}-${data.chatId}-${Date.now()}`
+
+      // Check if we've already processed this message
+      if (processedMessagesRef.current.has(messageId)) {
+        return
+      }
+
+      // Mark as processed
+      processedMessagesRef.current.add(messageId)
+
+      // After 10 seconds, remove from processed set to prevent memory leaks
+      setTimeout(() => {
+        processedMessagesRef.current.delete(messageId)
+      }, 10000)
+
       // Update messages if current chat is open
       if (activeChat && activeChat.id === data.chatId) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: data.id || Date.now().toString(),
-            text: data.message,
-            userId: data.senderId,
-            chatId: data.chatId,
-            createdAt: data.timestamp || new Date().toISOString(),
-            sender: {
-              id: data.senderId,
-              username: data.senderUsername || "User",
-              avatar: data.senderAvatar || null,
-            },
-            isRead: false,
-          },
-        ])
+        setMessages((prev) => {
+          // Check if message already exists in the array
+          const messageExists = prev.some(
+            (msg) =>
+              msg.id === messageId ||
+              (msg.text === data.message &&
+                msg.userId === data.senderId &&
+                Math.abs(new Date(msg.createdAt) - new Date(data.timestamp || Date.now())) < 5000),
+          )
 
-        // Mark as read
-        apiRequest.put(`/chats/read/${data.chatId}`).catch((err) => console.log(err))
+          if (messageExists) {
+            return prev
+          }
+
+          return [
+            ...prev,
+            {
+              id: messageId,
+              text: data.message,
+              userId: data.senderId,
+              chatId: data.chatId,
+              createdAt: data.timestamp || new Date().toISOString(),
+              sender: {
+                id: data.senderId,
+                username: data.senderUsername || "User",
+                avatar: data.senderAvatar || null,
+              },
+              isRead: false,
+            },
+          ]
+        })
+
+        // Mark as read if we're the receiver
+        if (data.senderId !== currentUser.id) {
+          apiRequest.put(`/chats/read/${data.chatId}`).catch((err) => console.log(err))
+        }
       }
 
       // Update chat list with new message
@@ -80,7 +114,12 @@ function Chat({ chats: initialChats, initialChatId }) {
               ...c,
               lastMessage: data.message,
               lastMessageAt: data.timestamp || new Date().toISOString(),
-              unreadCount: activeChat && activeChat.id === data.chatId ? 0 : (c.unreadCount || 0) + 1,
+              unreadCount:
+                activeChat && activeChat.id === data.chatId && data.senderId !== currentUser.id
+                  ? 0
+                  : data.senderId !== currentUser.id
+                    ? (c.unreadCount || 0) + 1
+                    : c.unreadCount || 0,
             }
           }
           return c
@@ -99,11 +138,32 @@ function Chat({ chats: initialChats, initialChatId }) {
     const handleMessageConfirmed = (data) => {
       console.log("Message confirmed:", data)
 
+      // Generate a unique ID for this message
+      const messageId = data.id || `${data.senderId}-${data.chatId}-${Date.now()}`
+
+      // Check if we've already processed this message
+      if (processedMessagesRef.current.has(messageId)) {
+        return
+      }
+
+      // Mark as processed
+      processedMessagesRef.current.add(messageId)
+
+      // After 10 seconds, remove from processed set
+      setTimeout(() => {
+        processedMessagesRef.current.delete(messageId)
+      }, 10000)
+
       if (activeChat && activeChat.id === data.chatId) {
         // Replace temp message with confirmed message or add if not exists
         setMessages((prev) => {
           const messageExists = prev.some(
-            (msg) => msg.isTemp && msg.text === data.message && msg.userId === data.senderId,
+            (msg) =>
+              msg.id === messageId ||
+              (msg.isTemp && msg.text === data.message && msg.userId === data.senderId) ||
+              (msg.text === data.message &&
+                msg.userId === data.senderId &&
+                Math.abs(new Date(msg.createdAt) - new Date(data.timestamp || Date.now())) < 5000),
           )
 
           if (messageExists) {
@@ -122,22 +182,7 @@ function Chat({ chats: initialChats, initialChatId }) {
                 : msg,
             )
           } else {
-            return [
-              ...prev,
-              {
-                id: data.id || Date.now().toString(),
-                text: data.message,
-                userId: data.senderId,
-                chatId: data.chatId,
-                createdAt: data.timestamp || new Date().toISOString(),
-                sender: {
-                  id: data.senderId,
-                  username: currentUser.username,
-                  avatar: currentUser.avatar,
-                },
-                isRead: false,
-              },
-            ]
+            return prev
           }
         })
       }
@@ -162,14 +207,23 @@ function Chat({ chats: initialChats, initialChatId }) {
 
     // Handle typing indicators
     const handleUserTyping = (data) => {
-      if (data.isTyping) {
-        setTypingUsers((prev) => ({ ...prev, [data.userId]: true }))
-      } else {
-        setTypingUsers((prev) => {
-          const updated = { ...prev }
-          delete updated[data.userId]
-          return updated
-        })
+      console.log("User typing:", data)
+
+      // Only process typing events for the active chat
+      if (
+        activeChat &&
+        (data.senderId === activeChat.receiver.id ||
+          (data.receiverId === activeChat.receiver.id && data.senderId !== currentUser.id))
+      ) {
+        if (data.isTyping) {
+          setTypingUsers((prev) => ({ ...prev, [data.senderId]: true }))
+        } else {
+          setTypingUsers((prev) => {
+            const updated = { ...prev }
+            delete updated[data.senderId]
+            return updated
+          })
+        }
       }
     }
 
@@ -362,8 +416,9 @@ function Chat({ chats: initialChats, initialChatId }) {
     }
 
     setError("")
+    const tempId = `temp-${Date.now()}`
     const tempMessage = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
       text,
       userId: currentUser.id,
       chatId: activeChat.id,
@@ -376,6 +431,9 @@ function Chat({ chats: initialChats, initialChatId }) {
       isTemp: true,
     }
 
+    // Add to processed messages to prevent duplication
+    processedMessagesRef.current.add(tempId)
+
     // Optimistic update
     setMessages((prev) => [...prev, tempMessage])
     setNewMessage("")
@@ -386,7 +444,7 @@ function Chat({ chats: initialChats, initialChatId }) {
       // Replace temp message with real message
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === tempMessage.id
+          msg.id === tempId
             ? {
                 ...res.data,
                 sender: {
@@ -394,10 +452,21 @@ function Chat({ chats: initialChats, initialChatId }) {
                   username: currentUser.username,
                   avatar: currentUser.avatar,
                 },
+                isTemp: false,
               }
             : msg,
         ),
       )
+
+      // Add confirmed message ID to processed set
+      if (res.data.id) {
+        processedMessagesRef.current.add(res.data.id)
+
+        // Clean up after 10 seconds
+        setTimeout(() => {
+          processedMessagesRef.current.delete(res.data.id)
+        }, 10000)
+      }
 
       // Update chat in list with new message
       setChats((prev) => {
@@ -424,6 +493,8 @@ function Chat({ chats: initialChats, initialChatId }) {
           chatId: activeChat.id,
           senderUsername: currentUser.username,
           senderAvatar: currentUser.avatar,
+          timestamp: new Date().toISOString(),
+          id: res.data.id,
         })
       }
     } catch (err) {
@@ -431,7 +502,10 @@ function Chat({ chats: initialChats, initialChatId }) {
       setError("Failed to send message")
 
       // Remove temp message on error
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id))
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId))
+
+      // Remove from processed set
+      processedMessagesRef.current.delete(tempId)
     }
   }
 

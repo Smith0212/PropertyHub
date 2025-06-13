@@ -37,6 +37,10 @@ const io = new Server(server, {
 })
 
 // Store online users
+// in my chat section in sender chat section messages are displayed twice.
+// receiver chat is rendered in realtime when the sender sends a message, but the sender's chat is not rendered in realtime when receiver sends a message
+// typing indicator is working only when the sender is typing, but not when the receiver is typing.
+// in chrome incognito mode, when i login, it redirect me to home page and within second i again redirected to login page and it give this error:  "GET https://propertyhub-j7dj.onrender.com/api/users/notification 401 (Unauthorized)", i think it's because the cookie is not set properly in incognito mode
 const onlineUsers = new Map()
 
 // Socket.IO connection handling
