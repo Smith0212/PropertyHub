@@ -549,6 +549,14 @@
 }
 
 // Responsive design
+@media (min-width: 1200px) {
+  .chat-container {
+  height: 82vh;
+  width: 35%;
+  position: fixed;
+  }
+}
+
 @media (max-width: 768px) {
   .chat-container {
     height: 400px;

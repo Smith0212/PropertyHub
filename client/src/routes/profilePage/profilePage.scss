@@ -140,8 +140,15 @@
   }
   .chatContainer {
     flex: 2;
-    background-color: #fcf5f3;
+    @media (min-width: 1200px) {
+      margin-left: 3%;
+    }
+    @media (max-width: 768px) {
+      margin: 7% 0;
+    }
+    // background-color: #fcf5f3;
     height: 100%;
+    width:  100%;
 
     @include md{
       flex:none;
@@ -151,6 +158,9 @@
     .wrapper{
       padding: 0px 20px;
       height: 100%;
+      @media (max-width: 768px) {
+        padding: 0%;
+      }
     }
   }
 }
