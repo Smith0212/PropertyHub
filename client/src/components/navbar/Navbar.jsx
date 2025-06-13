@@ -16,6 +16,15 @@ function Navbar() {
   const number = useNotificationStore((state) => state.number)
 
   useEffect(() => {
+    if (currentUser) {
+      const timer = setTimeout(() => {
+        fetch()
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [currentUser, fetch])
+
+  useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 20) {
         setScrolled(true)
@@ -28,9 +37,9 @@ function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  useEffect(() => {
-    if (currentUser) fetch()
-  }, [currentUser, fetch])
+  // useEffect(() => {
+  //   if (currentUser) fetch()
+  // }, [currentUser, fetch])
 
   // Close mobile menu when route changes
   useEffect(() => {
